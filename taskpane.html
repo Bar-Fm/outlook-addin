@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FM - נסח מקצועית</title>
+<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root { --brand:#0b3d6e; --bg:#fff; --muted:#666; --border:#d0d7de; }
+  * { box-sizing:border-box; }
+  body { font-family:'Heebo',Arial,sans-serif; direction:rtl; text-align:right; margin:0; padding:14px; background:var(--bg); color:#1b1b1b; font-size:14px; }
+  h1 { font-size:17px; color:var(--brand); margin:0 0 10px; }
+  label { display:block; font-weight:500; margin:10px 0 4px; }
+  select, textarea, input { width:100%; font-family:inherit; font-size:14px; padding:8px; border:1px solid var(--border); border-radius:6px; direction:rtl; }
+  textarea { min-height:220px; resize:vertical; line-height:1.6; }
+  .row { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  button { flex:1; padding:9px 10px; font-family:inherit; font-size:14px; border-radius:6px; border:1px solid var(--brand); background:#fff; color:var(--brand); cursor:pointer; }
+  button.primary { background:var(--brand); color:#fff; }
+  button:disabled { opacity:.5; cursor:default; }
+  .status { margin-top:10px; color:var(--muted); min-height:20px; }
+  .err { color:#b00020; }
+  details { margin-top:16px; border-top:1px solid var(--border); padding-top:8px; }
+  .note { font-size:12px; color:var(--muted); }
+</style>
+</head>
+<body>
+  <h1>נסח מקצועית – אפ.אמ. הנדסה</h1>
+  <div class="note">סמן טקסט במייל ולחץ "נסח". אם לא סומן דבר – ינוסח כל גוף המייל (מומלץ רק במייל חדש).</div>
+
+  <label for="tone">סגנון</label>
+  <select id="tone">
+    <option value="external">רשמי – לגורם חיצוני (לקוח, רשות, חברת החשמל)</option>
+    <option value="internal">ענייני – פנים משרדי</option>
+    <option value="short">קיצור ותמצות</option>
+    <option value="fix">תיקון שפה בלבד (בלי לשנות סגנון)</option>
+  </select>
+
+  <div class="row">
+    <button id="btnRun" class="primary">נסח</button>
+  </div>
+
+  <div class="status" id="status"></div>
+
+  <label for="result">הצעת ניסוח (אפשר לערוך לפני ההחלפה)</label>
+  <textarea id="result" placeholder="כאן תופיע ההצעה..."></textarea>
+
+  <div class="row">
+    <button id="btnReplace" disabled>החלף במייל</button>
+    <button id="btnCopy" disabled>העתק</button>
+  </div>
+
+  <details>
+    <summary>הגדרות</summary>
+    <label for="apiKey">מפתח API של Claude</label>
+    <input id="apiKey" type="password" placeholder="sk-ant-...">
+    <label for="model">מודל</label>
+    <input id="model" type="text">
+    <div class="row"><button id="btnSave">שמור הגדרות</button></div>
+    <div class="note">המפתח נשמר בהגדרות התוסף בתיבת הדואר שלך בלבד. לפיילוט אישי בלבד – בהפצה למשרד יעבור לשרת מאובטח.</div>
+  </details>
+
+<script src="taskpane.js"></script>
+</body>
+</html>
