@@ -7,7 +7,7 @@
 <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-  :root { --teal:#325f67; --orange:#f9b233; --ink:#1a1a1a; --muted:#4f5f62; --line:#d6dfe0; --alt:#eef2f3; --ins:#e3f4e8; --del:#fde8e8; }
+  :root { --teal:#325f67; --orange:#f9b233; --ink:#1a1a1a; --muted:#4f5f62; --line:#d6dfe0; --alt:#eef2f3; --ins:#e3f4e8; --del:#fde8e8; --warn:#fff4dc; }
   * { box-sizing:border-box; }
   body { font-family:Heebo,Arial,sans-serif; direction:rtl; text-align:right; margin:0; color:var(--ink); font-size:14px; background:#fff; }
   header { display:flex; align-items:center; gap:10px; padding:12px 14px; border-bottom:3px solid var(--orange); }
@@ -16,11 +16,12 @@
   header .s { font-size:12px; color:var(--muted); }
   main { padding:12px 14px 20px; }
   .tabs { display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap; }
-  .tab { flex:1; min-width:90px; padding:8px; border:1px solid var(--line); background:var(--alt); border-radius:8px; cursor:pointer; font:inherit; color:var(--teal); font-weight:500; }
+  .tab { flex:1 1 30%; padding:8px 4px; border:1px solid var(--line); background:var(--alt); border-radius:8px; cursor:pointer; font:inherit; font-size:13px; color:var(--teal); font-weight:500; }
   .tab.on { background:var(--teal); color:#fff; border-color:var(--teal); }
   label { display:block; font-weight:500; margin:10px 0 4px; }
   select, textarea, input { width:100%; font:inherit; padding:8px; border:1px solid var(--line); border-radius:8px; direction:rtl; }
-  textarea { min-height:160px; resize:vertical; line-height:1.6; }
+  textarea { min-height:150px; resize:vertical; line-height:1.6; }
+  textarea.short { min-height:80px; }
   .row { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
   button.b { flex:1; padding:9px 10px; font:inherit; border-radius:8px; border:1px solid var(--teal); background:#fff; color:var(--teal); cursor:pointer; font-weight:500; }
   button.b.primary { background:var(--teal); color:#fff; }
@@ -32,6 +33,8 @@
   .diff ins { background:var(--ins); text-decoration:none; border-radius:3px; }
   .diff del { background:var(--del); color:#8a1c1c; border-radius:3px; }
   .out { border:1px solid var(--line); border-radius:8px; padding:10px; line-height:1.7; white-space:pre-wrap; background:var(--alt); }
+  .flags { margin-top:10px; border:1px solid var(--orange); background:var(--warn); border-radius:8px; padding:8px 10px; font-size:13px; line-height:1.6; }
+  .flags b { color:#7a4b00; }
   .seg { display:flex; gap:6px; margin-top:8px; }
   .seg button { flex:1; padding:6px; font:inherit; font-size:13px; border:1px solid var(--line); background:#fff; border-radius:6px; cursor:pointer; }
   .seg button.on { border-color:var(--teal); color:var(--teal); font-weight:700; }
@@ -63,22 +66,57 @@
       <div class="seg"><button id="vDiff" class="on">מה השתנה</button><button id="vEdit">עריכה</button></div>
       <div id="diff" class="diff" style="margin-top:8px"></div>
       <textarea id="result" class="hidden" style="margin-top:8px"></textarea>
+      <div id="rwFlags" class="flags hidden"></div>
       <div class="row"><button class="b primary" id="btnReplace">החלף במייל</button><button class="b" id="btnCopy">העתק</button></div>
+    </div>
+  </section>
+
+  <!-- מנקודות -->
+  <section id="p-points" class="hidden">
+    <div class="note">כתוב כמה נקודות קצרות – והעוזר יכתוב מהן מייל מלא.</div>
+    <label for="points">נקודות</label>
+    <textarea id="points" class="short" placeholder="לאשר קבלת התכניות&#10;לבקש DWG מעודכן&#10;עד יום ה'"></textarea>
+    <label for="ptTone">סגנון</label>
+    <select id="ptTone">
+      <option value="external">רשמי – לגורם חיצוני</option>
+      <option value="internal">ענייני – פנים משרדי</option>
+    </select>
+    <div class="row"><button class="b primary" id="btnPoints">כתוב מייל</button></div>
+    <div id="ptOut" class="hidden">
+      <textarea id="ptText" style="margin-top:10px"></textarea>
+      <div id="ptFlags" class="flags hidden"></div>
+      <div class="row"><button class="b primary" id="btnPtInsert">הכנס למייל</button></div>
+    </div>
+  </section>
+
+  <!-- תבניות -->
+  <section id="p-templates" class="hidden">
+    <div class="note">בחר תבנית קבועה. העוזר יתאים אותה לפרטים שתכתוב.</div>
+    <label for="tplSel">תבנית</label>
+    <select id="tplSel"></select>
+    <label for="tplDetails">פרטים (לא חובה)</label>
+    <textarea id="tplDetails" class="short" placeholder="שם הנמען, פרויקט, מה חסר, מועד..."></textarea>
+    <div class="row"><button class="b primary" id="btnTpl">הכן</button></div>
+    <div id="tplOut" class="hidden">
+      <textarea id="tplText" style="margin-top:10px"></textarea>
+      <div id="tplFlags" class="flags hidden"></div>
+      <div class="row"><button class="b primary" id="btnTplInsert">הכנס למייל</button></div>
     </div>
   </section>
 
   <!-- בדיקה לפני שליחה -->
   <section id="p-check" class="hidden">
-    <div class="note">בודק את המייל לפני שליחה: קובץ מצורף שהוזכר ולא צורף, מספר פרויקט, נמענים, טון ושגיאות.</div>
+    <div class="note">בודק לפני שליחה: קובץ שהוזכר ולא צורף, מספר פרויקט, נמענים, טון, שגיאות וערכים טכניים.</div>
     <div class="row"><button class="b primary" id="btnCheck">בדוק</button></div>
     <div id="checkOut" class="out hidden" style="margin-top:10px"></div>
+    <div id="ckFlags" class="flags hidden"></div>
   </section>
 
   <!-- תשובה -->
   <section id="p-reply" class="hidden">
     <div class="note">מכין טיוטת תשובה למייל הפתוח. שום דבר לא נשלח – התשובה נפתחת לעריכה.</div>
-    <label for="replyHint">מה לענות? (לא חובה)</label>
-    <textarea id="replyHint" style="min-height:70px" placeholder="לדוגמה: לאשר, לבקש תכניות אדריכלות מעודכנות עד יום ה'"></textarea>
+    <label for="replyHint">מה לענות? (לא חובה – אפשר בנקודות)</label>
+    <textarea id="replyHint" class="short" placeholder="לדוגמה: לאשר, לבקש תכניות אדריכלות מעודכנות עד יום ה'"></textarea>
     <label for="replyTone">סגנון</label>
     <select id="replyTone">
       <option value="external">רשמי – לגורם חיצוני</option>
@@ -87,15 +125,26 @@
     <div class="row"><button class="b primary" id="btnReply">הכן טיוטה</button></div>
     <div id="replyBox" class="hidden">
       <textarea id="replyText" style="margin-top:10px"></textarea>
-      <div class="row"><button class="b primary" id="btnOpenReply">פתח כתשובה</button><button class="b" id="btnOpenReplyAll">פתח כתשובה לכולם</button></div>
+      <div id="rpFlags" class="flags hidden"></div>
+      <div class="row"><button class="b primary" id="btnOpenReply">פתח כתשובה</button><button class="b" id="btnOpenReplyAll">תשובה לכולם</button></div>
     </div>
   </section>
 
   <!-- סיכום -->
   <section id="p-summary" class="hidden">
-    <div class="note">מסכם את המייל / השרשור הפתוח: עיקר הדברים, החלטות ומשימות פתוחות.</div>
+    <div class="note">מסכם את המייל / השרשור: עיקר הדברים, החלטות ומשימות פתוחות.</div>
     <div class="row"><button class="b primary" id="btnSummary">סכם</button></div>
     <div id="sumOut" class="out hidden" style="margin-top:10px"></div>
+  </section>
+
+  <!-- משימות -->
+  <section id="p-tasks" class="hidden">
+    <div class="note">הופך מייל עם הערות (למשל מאדריכל או מבקר) לרשימת משימות ממוספרת לביצוע.</div>
+    <div class="row"><button class="b primary" id="btnTasks">הוצא משימות</button></div>
+    <div id="tasksBox" class="hidden">
+      <textarea id="tasksText" style="margin-top:10px"></textarea>
+      <div class="row"><button class="b" id="btnTasksCopy">העתק</button><button class="b primary" id="btnTasksFwd">מייל חדש עם הרשימה</button></div>
+    </div>
   </section>
 
   <div class="status" id="status"></div>
@@ -107,8 +156,10 @@
     <label for="model">מודל</label>
     <input id="model" type="text">
     <label for="glossary">מילון מונחים נוסף (מונח בכל שורה, אפשר "שגוי = נכון")</label>
-    <textarea id="glossary" style="min-height:90px" placeholder="לוח חשמל ראשי&#10;חח&quot;י = חברת החשמל"></textarea>
-    <div class="row"><button class="b" id="btnSave">שמור הגדרות</button></div>
+    <textarea id="glossary" class="short" placeholder="לוח חשמל ראשי&#10;חח&quot;י = חברת החשמל"></textarea>
+    <label for="templates">תבניות (בכל שורה: שם: מה המייל אומר)</label>
+    <textarea id="templates" class="short"></textarea>
+    <div class="row"><button class="b" id="btnSave">שמור הגדרות</button><button class="b" id="btnTplReset">תבניות ברירת מחדל</button></div>
     <div class="note">ההגדרות נשמרות בתיבת הדואר שלך בלבד. פיילוט אישי.</div>
   </details>
 </main>
