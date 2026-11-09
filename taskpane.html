@@ -3,52 +3,102 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FM - נסח מקצועית</title>
+<title>FM - עוזר מייל</title>
 <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-  :root { --brand:#0b3d6e; --bg:#fff; --muted:#666; --border:#d0d7de; }
+  :root { --teal:#325f67; --orange:#f9b233; --ink:#1a1a1a; --muted:#4f5f62; --line:#d6dfe0; --alt:#eef2f3; --ins:#e3f4e8; --del:#fde8e8; }
   * { box-sizing:border-box; }
-  body { font-family:'Heebo',Arial,sans-serif; direction:rtl; text-align:right; margin:0; padding:14px; background:var(--bg); color:#1b1b1b; font-size:14px; }
-  h1 { font-size:17px; color:var(--brand); margin:0 0 10px; }
+  body { font-family:Heebo,Arial,sans-serif; direction:rtl; text-align:right; margin:0; color:var(--ink); font-size:14px; background:#fff; }
+  header { display:flex; align-items:center; gap:10px; padding:12px 14px; border-bottom:3px solid var(--orange); }
+  header img { height:28px; }
+  header .t { font-weight:700; color:var(--teal); font-size:15px; line-height:1.2; }
+  header .s { font-size:12px; color:var(--muted); }
+  main { padding:12px 14px 20px; }
+  .tabs { display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap; }
+  .tab { flex:1; min-width:90px; padding:8px; border:1px solid var(--line); background:var(--alt); border-radius:8px; cursor:pointer; font:inherit; color:var(--teal); font-weight:500; }
+  .tab.on { background:var(--teal); color:#fff; border-color:var(--teal); }
   label { display:block; font-weight:500; margin:10px 0 4px; }
-  select, textarea, input { width:100%; font-family:inherit; font-size:14px; padding:8px; border:1px solid var(--border); border-radius:6px; direction:rtl; }
-  textarea { min-height:220px; resize:vertical; line-height:1.6; }
+  select, textarea, input { width:100%; font:inherit; padding:8px; border:1px solid var(--line); border-radius:8px; direction:rtl; }
+  textarea { min-height:160px; resize:vertical; line-height:1.6; }
   .row { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
-  button { flex:1; padding:9px 10px; font-family:inherit; font-size:14px; border-radius:6px; border:1px solid var(--brand); background:#fff; color:var(--brand); cursor:pointer; }
-  button.primary { background:var(--brand); color:#fff; }
-  button:disabled { opacity:.5; cursor:default; }
+  button.b { flex:1; padding:9px 10px; font:inherit; border-radius:8px; border:1px solid var(--teal); background:#fff; color:var(--teal); cursor:pointer; font-weight:500; }
+  button.b.primary { background:var(--teal); color:#fff; }
+  button.b:disabled { opacity:.45; cursor:default; }
   .status { margin-top:10px; color:var(--muted); min-height:20px; }
   .err { color:#b00020; }
-  details { margin-top:16px; border-top:1px solid var(--border); padding-top:8px; }
   .note { font-size:12px; color:var(--muted); }
+  .diff { border:1px solid var(--line); border-radius:8px; padding:10px; line-height:1.8; white-space:pre-wrap; background:#fff; max-height:260px; overflow:auto; }
+  .diff ins { background:var(--ins); text-decoration:none; border-radius:3px; }
+  .diff del { background:var(--del); color:#8a1c1c; border-radius:3px; }
+  .out { border:1px solid var(--line); border-radius:8px; padding:10px; line-height:1.7; white-space:pre-wrap; background:var(--alt); }
+  .seg { display:flex; gap:6px; margin-top:8px; }
+  .seg button { flex:1; padding:6px; font:inherit; font-size:13px; border:1px solid var(--line); background:#fff; border-radius:6px; cursor:pointer; }
+  .seg button.on { border-color:var(--teal); color:var(--teal); font-weight:700; }
+  details { margin-top:18px; border-top:1px solid var(--line); padding-top:8px; }
+  summary { cursor:pointer; color:var(--teal); font-weight:500; }
+  .hidden { display:none !important; }
 </style>
 </head>
 <body>
-  <h1>נסח מקצועית – אפ.אמ. הנדסה</h1>
-  <div class="note">סמן טקסט במייל ולחץ "נסח". אם לא סומן דבר – ינוסח כל גוף המייל (מומלץ רק במייל חדש).</div>
+<header>
+  <img src="logo.svg" alt="FM">
+  <div><div class="t">עוזר מייל</div><div class="s">אפ.אמ. הנדסה בע"מ</div></div>
+</header>
+<main>
+  <div class="tabs" id="tabs"></div>
 
-  <label for="tone">סגנון</label>
-  <select id="tone">
-    <option value="external">רשמי – לגורם חיצוני (לקוח, רשות, חברת החשמל)</option>
-    <option value="internal">ענייני – פנים משרדי</option>
-    <option value="short">קיצור ותמצות</option>
-    <option value="fix">תיקון שפה בלבד (בלי לשנות סגנון)</option>
-  </select>
+  <!-- ניסוח -->
+  <section id="p-rewrite" class="hidden">
+    <div class="note">סמן טקסט במייל ולחץ "נסח". בלי סימון – ינוסח כל גוף המייל (מומלץ רק במייל חדש).</div>
+    <label for="tone">סגנון</label>
+    <select id="tone">
+      <option value="external">רשמי – לגורם חיצוני (לקוח, רשות, חברת החשמל)</option>
+      <option value="internal">ענייני – פנים משרדי</option>
+      <option value="short">קיצור ותמצות</option>
+      <option value="fix">תיקון שפה בלבד</option>
+    </select>
+    <div class="row"><button class="b primary" id="btnRewrite">נסח</button></div>
+    <div id="rwOut" class="hidden">
+      <div class="seg"><button id="vDiff" class="on">מה השתנה</button><button id="vEdit">עריכה</button></div>
+      <div id="diff" class="diff" style="margin-top:8px"></div>
+      <textarea id="result" class="hidden" style="margin-top:8px"></textarea>
+      <div class="row"><button class="b primary" id="btnReplace">החלף במייל</button><button class="b" id="btnCopy">העתק</button></div>
+    </div>
+  </section>
 
-  <div class="row">
-    <button id="btnRun" class="primary">נסח</button>
-  </div>
+  <!-- בדיקה לפני שליחה -->
+  <section id="p-check" class="hidden">
+    <div class="note">בודק את המייל לפני שליחה: קובץ מצורף שהוזכר ולא צורף, מספר פרויקט, נמענים, טון ושגיאות.</div>
+    <div class="row"><button class="b primary" id="btnCheck">בדוק</button></div>
+    <div id="checkOut" class="out hidden" style="margin-top:10px"></div>
+  </section>
+
+  <!-- תשובה -->
+  <section id="p-reply" class="hidden">
+    <div class="note">מכין טיוטת תשובה למייל הפתוח. שום דבר לא נשלח – התשובה נפתחת לעריכה.</div>
+    <label for="replyHint">מה לענות? (לא חובה)</label>
+    <textarea id="replyHint" style="min-height:70px" placeholder="לדוגמה: לאשר, לבקש תכניות אדריכלות מעודכנות עד יום ה'"></textarea>
+    <label for="replyTone">סגנון</label>
+    <select id="replyTone">
+      <option value="external">רשמי – לגורם חיצוני</option>
+      <option value="internal">ענייני – פנים משרדי</option>
+    </select>
+    <div class="row"><button class="b primary" id="btnReply">הכן טיוטה</button></div>
+    <div id="replyBox" class="hidden">
+      <textarea id="replyText" style="margin-top:10px"></textarea>
+      <div class="row"><button class="b primary" id="btnOpenReply">פתח כתשובה</button><button class="b" id="btnOpenReplyAll">פתח כתשובה לכולם</button></div>
+    </div>
+  </section>
+
+  <!-- סיכום -->
+  <section id="p-summary" class="hidden">
+    <div class="note">מסכם את המייל / השרשור הפתוח: עיקר הדברים, החלטות ומשימות פתוחות.</div>
+    <div class="row"><button class="b primary" id="btnSummary">סכם</button></div>
+    <div id="sumOut" class="out hidden" style="margin-top:10px"></div>
+  </section>
 
   <div class="status" id="status"></div>
-
-  <label for="result">הצעת ניסוח (אפשר לערוך לפני ההחלפה)</label>
-  <textarea id="result" placeholder="כאן תופיע ההצעה..."></textarea>
-
-  <div class="row">
-    <button id="btnReplace" disabled>החלף במייל</button>
-    <button id="btnCopy" disabled>העתק</button>
-  </div>
 
   <details>
     <summary>הגדרות</summary>
@@ -56,10 +106,12 @@
     <input id="apiKey" type="password" placeholder="sk-ant-...">
     <label for="model">מודל</label>
     <input id="model" type="text">
-    <div class="row"><button id="btnSave">שמור הגדרות</button></div>
-    <div class="note">המפתח נשמר בהגדרות התוסף בתיבת הדואר שלך בלבד. לפיילוט אישי בלבד – בהפצה למשרד יעבור לשרת מאובטח.</div>
+    <label for="glossary">מילון מונחים נוסף (מונח בכל שורה, אפשר "שגוי = נכון")</label>
+    <textarea id="glossary" style="min-height:90px" placeholder="לוח חשמל ראשי&#10;חח&quot;י = חברת החשמל"></textarea>
+    <div class="row"><button class="b" id="btnSave">שמור הגדרות</button></div>
+    <div class="note">ההגדרות נשמרות בתיבת הדואר שלך בלבד. פיילוט אישי.</div>
   </details>
-
+</main>
 <script src="taskpane.js"></script>
 </body>
 </html>
