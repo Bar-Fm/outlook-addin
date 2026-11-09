@@ -40,6 +40,8 @@
   .seg button.on { border-color:var(--teal); color:var(--teal); font-weight:700; }
   details { margin-top:18px; border-top:1px solid var(--line); padding-top:8px; }
   summary { cursor:pointer; color:var(--teal); font-weight:500; }
+  .hist { border:1px solid var(--line); border-radius:8px; padding:6px 8px; margin-top:6px; cursor:pointer; font-size:13px; }
+  .ltr { direction:ltr; text-align:left; font-family:Arial,sans-serif; }
   .hidden { display:none !important; }
 </style>
 </head>
@@ -104,10 +106,22 @@
     </div>
   </section>
 
+  <!-- אנגלית -->
+  <section id="p-english" class="hidden">
+    <div class="note">מתרגם לאנגלית מקצועית (שמאל לימין) את הטקסט המסומן, או את כל המייל אם לא סומן דבר.</div>
+    <div class="row"><button class="b primary" id="btnEnglish">תרגם לאנגלית</button></div>
+    <div id="engOut" class="hidden">
+      <textarea id="engText" class="ltr" style="margin-top:10px"></textarea>
+      <div id="engFlags" class="flags hidden"></div>
+      <div class="row"><button class="b primary" id="btnEngReplace">החלף במייל</button><button class="b" id="btnEngCopy">העתק</button></div>
+    </div>
+  </section>
+
   <!-- בדיקה לפני שליחה -->
   <section id="p-check" class="hidden">
     <div class="note">בודק לפני שליחה: קובץ שהוזכר ולא צורף, מספר פרויקט, נמענים, טון, שגיאות וערכים טכניים.</div>
-    <div class="row"><button class="b primary" id="btnCheck">בדוק</button></div>
+    <div class="row"><button class="b primary" id="btnCheck">בדוק</button><button class="b" id="btnProj">זהה פרויקט</button></div>
+    <div id="projBox" class="note" style="margin-top:6px"></div>
     <div id="checkOut" class="out hidden" style="margin-top:10px"></div>
     <div id="ckFlags" class="flags hidden"></div>
   </section>
@@ -121,6 +135,7 @@
     <select id="replyTone">
       <option value="external">רשמי – לגורם חיצוני</option>
       <option value="internal">ענייני – פנים משרדי</option>
+      <option value="english">English – באנגלית, לחו"ל</option>
     </select>
     <div class="row"><button class="b primary" id="btnReply">הכן טיוטה</button></div>
     <div id="replyBox" class="hidden">
@@ -159,8 +174,20 @@
     <textarea id="glossary" class="short" placeholder="לוח חשמל ראשי&#10;חח&quot;י = חברת החשמל"></textarea>
     <label for="templates">תבניות (בכל שורה: שם: מה המייל אומר)</label>
     <textarea id="templates" class="short"></textarea>
+    <label for="projects">פרויקטים (בכל שורה: מספר = שם)</label>
+    <textarea id="projects" class="short" placeholder="15026 = שם הפרויקט"></textarea>
+    <label>מחיר לחישוב עלות (דולר למיליון טוקנים: קלט / פלט)</label>
+    <div class="row" style="margin-top:0"><input id="priceIn" type="text" style="flex:1"><input id="priceOut" type="text" style="flex:1"></div>
     <div class="row"><button class="b" id="btnSave">שמור הגדרות</button><button class="b" id="btnTplReset">תבניות ברירת מחדל</button></div>
     <div class="note">ההגדרות נשמרות בתיבת הדואר שלך בלבד. פיילוט אישי.</div>
+  </details>
+
+  <details>
+    <summary>שימוש והיסטוריה</summary>
+    <div id="usage" class="note" style="margin-top:8px"></div>
+    <div class="note" style="margin-top:8px">15 התוצאות האחרונות (נשמרות רק במחשב הזה). לחיצה מעתיקה.</div>
+    <div id="history"></div>
+    <div class="row"><button class="b" id="btnHistClear">נקה היסטוריה</button></div>
   </details>
 </main>
 <script src="taskpane.js"></script>

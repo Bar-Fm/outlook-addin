@@ -1,4 +1,4 @@
-/* FM-ENG | Outlook add-in "FM - mail assistant" v1.2 | pilot (single user)
+/* FM-ENG | Outlook add-in "FM - mail assistant" v1.3 | pilot (single user)
    The API key is kept in Office roamingSettings (per mailbox).
    For an office-wide rollout, move the Claude call to a small server. */
 
@@ -33,12 +33,15 @@ var TONES = {
   external: "סגנון: רשמי ומכובד לגורם חיצוני. פתיחה מנומסת, תמצית ברורה, וסיום בשורה 'בכבוד רב,' (בלי שם אחריה).",
   internal: "סגנון: ענייני וברור לעמית במשרד, בלי רשמיות יתר.",
   short: "סגנון: קצר ותמציתי ככל האפשר, בלי לאבד מידע.",
-  fix: "תקן שגיאות כתיב, דקדוק ופיסוק בלבד. אל תשנה סגנון, מבנה או ניסוח מעבר לנדרש."
+  fix: "תקן שגיאות כתיב, דקדוק ופיסוק בלבד. אל תשנה סגנון, מבנה או ניסוח מעבר לנדרש.",
+  english: "Write in professional, natural English (not Hebrew) for an engineering firm: concise and polite, end with 'Best regards,' (no name after it)."
 };
 
 var source = { mode: null };
+var engSource = null;
 var lastOriginal = "";
 var isCompose = false;
+var currentTab = "";
 
 function $(id) { return document.getElementById(id); }
 function setStatus(t, err) { $("status").textContent = t; $("status").className = "status" + (err ? " err" : ""); }
@@ -82,6 +85,42 @@ function showFlags(boxId, out, src) {
   box.classList.remove("hidden");
 }
 
+/* ---------- usage + history ---------- */
+function monthKey() { var d = new Date(); return d.getFullYear() + "-" + (d.getMonth() + 1); }
+function getUsage() { var u = settings().get("fm_usage"); return (u && u.m === monthKey()) ? u : { m: monthKey(), n: 0, tin: 0, tout: 0 }; }
+function price(k, def) { var v = parseFloat(settings().get(k)); return isNaN(v) ? def : v; }
+function trackUsage(usage) {
+  if (!usage) return;
+  var u = getUsage(); u.n += 1; u.tin += usage.input_tokens || 0; u.tout += usage.output_tokens || 0;
+  settings().set("fm_usage", u); settings().saveAsync(function () {});
+  renderUsage();
+}
+function renderUsage() {
+  var u = getUsage();
+  var cost = u.tin / 1e6 * price("fm_price_in", 3) + u.tout / 1e6 * price("fm_price_out", 15);
+  $("usage").textContent = "החודש: " + u.n + " בקשות · כ-$" + cost.toFixed(2) + " (הערכה לפי המחיר שבהגדרות)";
+}
+var HKEY = "fm_history";
+function loadHistory() { try { return JSON.parse(localStorage.getItem(HKEY) || "[]"); } catch (e) { return []; } }
+function addHistory(kind, text) {
+  var h = loadHistory(); h.unshift({ t: new Date().toLocaleString("he-IL"), k: kind, x: text }); h = h.slice(0, 15);
+  try { localStorage.setItem(HKEY, JSON.stringify(h)); } catch (e) {}
+  renderHistory();
+}
+function renderHistory() {
+  var box = $("history"); box.innerHTML = ""; var h = loadHistory();
+  if (!h.length) { box.className = "note"; box.textContent = "אין עדיין."; return; }
+  box.className = "";
+  h.forEach(function (e) {
+    var d = document.createElement("div"); d.className = "hist";
+    var m = document.createElement("div"); m.className = "note"; m.textContent = e.t + " · " + e.k; d.appendChild(m);
+    var p = document.createElement("div"); p.textContent = e.x.slice(0, 140) + (e.x.length > 140 ? "…" : ""); d.appendChild(p);
+    d.onclick = function () { navigator.clipboard.writeText(e.x); setStatus("הטקסט מההיסטוריה הועתק."); };
+    box.appendChild(d);
+  });
+}
+function clearHistory() { try { localStorage.removeItem(HKEY); } catch (e) {} renderHistory(); setStatus("ההיסטוריה נוקתה."); }
+
 /* ---------- Claude ---------- */
 function callClaude(system, user, maxTokens) {
   var key = settings().get("fm_api_key") || $("apiKey").value.trim();
@@ -103,7 +142,10 @@ function callClaude(system, user, maxTokens) {
   }).then(function (resp) {
     return resp.json().then(function (data) {
       if (!resp.ok) throw new Error((data && data.error && data.error.message) || resp.status);
-      return data.content.filter(function (c) { return c.type === "text"; }).map(function (c) { return c.text; }).join("").trim();
+      trackUsage(data.usage);
+      var out = data.content.filter(function (c) { return c.type === "text"; }).map(function (c) { return c.text; }).join("").trim();
+      addHistory(currentTab, out);
+      return out;
     });
   });
 }
@@ -136,9 +178,9 @@ function getAttachments() {
 }
 function subjectText() { var s = Office.context.mailbox.item.subject; return typeof s === "string" ? s : ""; }
 function esc(t) { return t.split("&").join("&amp;").split("<").join("&lt;").split(">").join("&gt;"); }
-/* email drafts: RTL, Arial 11 */
-function toHtml(t) {
-  return '<div dir="rtl" style="font-family:Arial,sans-serif;font-size:11pt;text-align:right">' + esc(t).split(NL).join("<br>") + "</div>";
+/* email drafts: Arial 11; RTL for Hebrew, LTR for English */
+function toHtml(t, ltr) {
+  return '<div dir="' + (ltr ? "ltr" : "rtl") + '" style="font-family:Arial,sans-serif;font-size:11pt;text-align:' + (ltr ? "left" : "right") + '">' + esc(t).split(NL).join("<br>") + "</div>";
 }
 function insertAtCursor(text) {
   Office.context.mailbox.item.body.setSelectedDataAsync(toHtml(text), { coercionType: Office.CoercionType.Html }, function (r) {
@@ -258,6 +300,58 @@ function doTemplate() {
   });
 }
 
+/* ---------- English ---------- */
+function doEnglish() {
+  return run("btnEnglish", "מתרגם...", function () {
+    return getSelection().then(function (sel) {
+      sel = sel.trim(); engSource = "selection";
+      return sel ? sel : getBody().then(function (b) { engSource = "body"; return b.trim(); });
+    }).then(function (text) {
+      if (!text) throw new Error("לא נמצא טקסט לתרגום.");
+      return callClaude(systemPrompt([TONES.english, "משימה: תרגם את הטקסט לאנגלית מקצועית של משרד הנדסה. שמור על מונחים טכניים, ערכים ויחידות בדיוק. החזר את התרגום בלבד."]), text).then(function (out) {
+        $("engText").value = out; $("engOut").classList.remove("hidden");
+        showFlags("engFlags", out, text);
+        setStatus("מוכן. ערוך ולחץ 'החלף במייל'.");
+      });
+    });
+  });
+}
+function engReplace() {
+  var html = toHtml($("engText").value, true), item = Office.context.mailbox.item;
+  var cb = function (r) { setStatus(ok(r) ? "הטקסט הוחלף במייל." : "ההחלפה נכשלה: " + r.error.message, !ok(r)); };
+  if (engSource === "selection") item.body.setSelectedDataAsync(html, { coercionType: Office.CoercionType.Html }, cb);
+  else item.body.setAsync(html, { coercionType: Office.CoercionType.Html }, cb);
+}
+
+/* ---------- projects (list lives only in the user's mailbox settings) ---------- */
+function projects() {
+  return lines(settings().get("fm_projects")).map(function (l) {
+    var i = l.indexOf("=");
+    return i < 0 ? { n: l.trim(), name: "" } : { n: l.slice(0, i).trim(), name: l.slice(i + 1).trim() };
+  });
+}
+function detectProject() {
+  return Promise.all([getComposeField("subject"), getBody()]).then(function (v) {
+    var subj = v[0] || "", text = subj + " " + v[1], box = $("projBox"); box.innerHTML = "";
+    var list = projects();
+    var hits = list.filter(function (p) { return p.n && text.indexOf(p.n) >= 0; });
+    if (!hits.length) { box.textContent = list.length ? "לא זוהה במייל פרויקט מהרשימה." : "רשימת הפרויקטים ריקה – הוסף בהגדרות."; return; }
+    hits.forEach(function (p) {
+      var label = "פרויקט " + p.n + (p.name ? " – " + p.name : "");
+      var row = document.createElement("div"); row.className = "row";
+      var b = document.createElement("button"); b.className = "b";
+      if (subj.indexOf(p.n) >= 0) { b.textContent = label + " ✓ כבר בנושא"; b.disabled = true; }
+      else { b.textContent = "הוסף לנושא: " + label; b.onclick = function () { addToSubject(label, subj); }; }
+      row.appendChild(b); box.appendChild(row);
+    });
+  });
+}
+function addToSubject(label, subj) {
+  Office.context.mailbox.item.subject.setAsync(label + (subj ? " | " + subj : ""), function (r) {
+    setStatus(ok(r) ? "הנושא עודכן." : "עדכון הנושא נכשל.", !ok(r)); detectProject();
+  });
+}
+
 /* ---------- pre-send check ---------- */
 function doCheck() {
   return run("btnCheck", "בודק...", function () {
@@ -266,6 +360,7 @@ function doCheck() {
       var att = v[4] === null ? "לא ידוע" : (v[4].length ? v[4].map(function (a) { return a.name; }).join(", ") : "אין");
       var info = ["נושא: " + (v[0] || "—"), "אל: " + who(v[1]), "עותק: " + who(v[2]), "קבצים מצורפים: " + att, "", "גוף המייל:", v[3]].join(NL);
       showFlags("ckFlags", v[3], null);
+      detectProject();
       return callClaude(systemPrompt([
         "משימה: בדוק מייל לפני שליחה ומצא בעיות בלבד. אל תנסח מחדש.",
         "בדוק: קובץ שהוזכר בטקסט ולא צורף; מספר פרויקט שמופיע בגוף ולא בנושא (במשרד מספר פרויקט = מספר סידורי + שנה, למשל 15026); נושא חסר או לא ברור; פנייה בשם שלא תואם לנמען; טון חריף או לא מקצועי; שגיאות כתיב בולטות; התחייבות למועד או לערך שנראית לא מכוונת.",
@@ -295,7 +390,7 @@ function doReply() {
   });
 }
 function openReply(all) {
-  var html = toHtml($("replyText").value), item = Office.context.mailbox.item;
+  var html = toHtml($("replyText").value, $("replyTone").value === "english"), item = Office.context.mailbox.item;
   if (all) item.displayReplyAllForm(html); else item.displayReplyForm(html);
   setStatus("נפתח חלון תשובה לעריכה. בדוק שהחתימה 'בר' נוספה לפני שליחה.");
 }
@@ -335,7 +430,10 @@ function saveSettings() {
   s.set("fm_model", $("model").value.trim() || DEFAULT_MODEL);
   s.set("fm_glossary", $("glossary").value);
   s.set("fm_templates", $("templates").value.trim() || DEFAULT_TEMPLATES);
-  s.saveAsync(function (r) { setStatus(ok(r) ? "ההגדרות נשמרו." : "שמירה נכשלה.", !ok(r)); fillTemplates(); });
+  s.set("fm_projects", $("projects").value);
+  s.set("fm_price_in", $("priceIn").value.trim());
+  s.set("fm_price_out", $("priceOut").value.trim());
+  s.saveAsync(function (r) { setStatus(ok(r) ? "ההגדרות נשמרו." : "שמירה נכשלה.", !ok(r)); fillTemplates(); renderUsage(); });
 }
 function buildTabs(list) {
   var tabs = $("tabs");
@@ -343,8 +441,8 @@ function buildTabs(list) {
     var b = document.createElement("button"); b.className = "tab"; b.textContent = t[1];
     b.onclick = function () {
       Array.prototype.forEach.call(tabs.children, function (x) { x.classList.remove("on"); });
-      b.classList.add("on");
-      ["rewrite", "points", "templates", "check", "reply", "summary", "tasks"].forEach(function (p) { $("p-" + p).classList.toggle("hidden", p !== t[0]); });
+      b.classList.add("on"); currentTab = t[1];
+      ["rewrite", "points", "templates", "english", "check", "reply", "summary", "tasks"].forEach(function (p) { $("p-" + p).classList.toggle("hidden", p !== t[0]); });
       setStatus("");
     };
     tabs.appendChild(b);
@@ -360,6 +458,15 @@ Office.onReady(function () {
   $("model").value = s.get("fm_model") || DEFAULT_MODEL;
   $("glossary").value = s.get("fm_glossary") || "";
   fillTemplates();
+  $("projects").value = s.get("fm_projects") || "";
+  $("priceIn").value = s.get("fm_price_in") || "3";
+  $("priceOut").value = s.get("fm_price_out") || "15";
+  renderUsage(); renderHistory();
+  $("btnEnglish").onclick = doEnglish;
+  $("btnEngReplace").onclick = engReplace;
+  $("btnEngCopy").onclick = function () { navigator.clipboard.writeText($("engText").value); setStatus("הועתק."); };
+  $("btnProj").onclick = function () { detectProject(); };
+  $("btnHistClear").onclick = clearHistory;
   $("btnRewrite").onclick = doRewrite;
   $("btnReplace").onclick = doReplace;
   $("btnCopy").onclick = function () { navigator.clipboard.writeText($("result").value); setStatus("הועתק."); };
@@ -380,6 +487,6 @@ Office.onReady(function () {
   $("btnSave").onclick = saveSettings;
   $("btnTplReset").onclick = function () { $("templates").value = DEFAULT_TEMPLATES; setStatus("הוחזרו תבניות ברירת המחדל – לחץ 'שמור הגדרות'."); };
   buildTabs(isCompose
-    ? [["rewrite", "נסח"], ["points", "מנקודות"], ["templates", "תבניות"], ["check", "בדוק לפני שליחה"]]
+    ? [["rewrite", "נסח"], ["points", "מנקודות"], ["templates", "תבניות"], ["english", "אנגלית"], ["check", "בדוק לפני שליחה"]]
     : [["reply", "ענה"], ["summary", "סכם"], ["tasks", "משימות"]]);
 });
